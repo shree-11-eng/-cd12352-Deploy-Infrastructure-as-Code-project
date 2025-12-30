@@ -2,11 +2,31 @@ Description: CD12352 - Infrastructure as Code Project - Network
 
 Parameters:
   # Add your parameters here
-  VPC CIDR:            10.0.0.0/16
-Public Subnet 1:     10.0.1.0/24
-Public Subnet 2:     10.0.2.0/24
-Private Subnet 1:    10.0.3.0/24
-Private Subnet 2:    10.0.4.0/24
+
+  VpcCIDR:
+    Description: CIDR block for the VPC
+    Type: String
+    Default: 10.0.0.0/16
+
+  PublicSubnet1CIDR:
+    Description: CIDR block for Public Subnet 1
+    Type: String
+    Default: 10.0.1.0/24
+
+  PublicSubnet2CIDR:
+    Description: CIDR block for Public Subnet 2
+    Type: String
+    Default: 10.0.2.0/24
+
+  PrivateSubnet1CIDR:
+    Description: CIDR block for Private Subnet 1
+    Type: String
+    Default: 10.0.3.0/24
+
+  PrivateSubnet2CIDR:
+    Description: CIDR block for Private Subnet 2
+    Type: String
+    Default: 10.0.4.0/24
 
   
 
