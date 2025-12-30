@@ -1,64 +1,72 @@
 Description: CD12352 - Infrastructure as Code Project - Network
 
 Parameters:
-  # Add your parameters here
 
   VpcCIDR:
-    Description: CIDR block for the VPC
     Type: String
     Default: 10.0.0.0/16
 
   PublicSubnet1CIDR:
-    Description: CIDR block for Public Subnet 1
     Type: String
     Default: 10.0.1.0/24
 
   PublicSubnet2CIDR:
-    Description: CIDR block for Public Subnet 2
     Type: String
     Default: 10.0.2.0/24
 
   PrivateSubnet1CIDR:
-    Description: CIDR block for Private Subnet 1
     Type: String
     Default: 10.0.3.0/24
 
   PrivateSubnet2CIDR:
-    Description: CIDR block for Private Subnet 2
     Type: String
     Default: 10.0.4.0/24
 
-  
-
 Resources:
-  # Add your resources here
-  
 
   VPC:
     Type: AWS::EC2::VPC
-
-  InternetGateway:
-    Type: AWS::EC2::InternetGateway
-
-  AttachGateway:
-    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: UdagramVPC
 
   PublicSubnet1:
     Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet1CIDR
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
 
   PublicSubnet2:
     Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PublicSubnet2CIDR
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
 
   PrivateSubnet1:
     Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet1CIDR
+      AvailabilityZone: !Select [0, !GetAZs '']
 
   PrivateSubnet2:
     Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref PrivateSubnet2CIDR
+      AvailabilityZone: !Select [1, !GetAZs '']
 
-  NatGateway1:
-    Type: AWS::EC2::NatGateway
+Outputs:
 
-  NatGateway2:
-    Type: AWS::EC2::NatGateway
-
-
+  VPCId:
+    Value: !Ref VPC
+    Export:
+      Name: Udagram-VPCID
