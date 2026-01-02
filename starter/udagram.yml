@@ -1,11 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: Udagram Application Stack - ALB, ASG, EC2
 
-Parameters:
-  EnvironmentName:
-    Type: String
-    Default: Udagram
-
 Resources:
 
 # -------------------------
@@ -65,7 +60,7 @@ Resources:
     Type: AWS::EC2::LaunchTemplate
     Properties:
       LaunchTemplateData:
-        ImageId: ami-0e670eb768a5fc3d4   # Amazon Linux 2 (ap-south-1)
+        ImageId: !Ref LatestAmiId
         InstanceType: t2.micro
         IamInstanceProfile:
           Name: !Ref UdagramInstanceProfile
@@ -133,11 +128,17 @@ Resources:
         - !Ref TargetGroup
 
 # -------------------------
+# SSM PARAMETER (AMI)
+# -------------------------
+Parameters:
+  LatestAmiId:
+    Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+
+# -------------------------
 # OUTPUTS
 # -------------------------
 Outputs:
   LoadBalancerURL:
     Description: Public URL of the Application
     Value: !Sub "http://${LoadBalancer.DNSName}"
-    Export:
-      Name: Udagram-URL
