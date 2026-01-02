@@ -1,23 +1,51 @@
-AWSTemplateFormatVersion: '2010-09-09'
-Description: Udagram App – Single EC2 + ALB (Guaranteed Working)
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Udagram Application Stack - ALB, ASG, EC2, S3
+
+Parameters:
+
+  EnvironmentName:
+    Type: String
+    Default: Udagram
 
 Resources:
 
+# -------------------------
+# IAM ROLE FOR EC2
+# -------------------------
+  UdagramEC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+  UdagramInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref UdagramEC2Role
+
+# -------------------------
+# SECURITY GROUPS
+# -------------------------
   LoadBalancerSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Allow public HTTP
+      GroupDescription: Allow HTTP from Internet
       VpcId: !ImportValue Udagram-VPC
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
-      SecurityGroupEgress:
-        - IpProtocol: -1
-          CidrIp: 0.0.0.0/0
 
-  WebServerSG:
+  ServerSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allow HTTP from ALB
@@ -31,45 +59,55 @@ Resources:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
 
-  WebServer:
-    Type: AWS::EC2::Instance
+# -------------------------
+# S3 BUCKET
+# -------------------------
+  UdagramS3Bucket:
+    Type: AWS::S3::Bucket
     Properties:
-      InstanceType: t3.micro
-      ImageId: ami-0c02fb55956c7d316
-      SubnetId: !ImportValue Udagram-PublicSubnet1 # 🔴 IMPORTANT
-      SecurityGroupIds:
-        - !Ref WebServerSG
-      Tags:
-        - Key: Name
-          Value: Udagram-WebServer
-      UserData:
-        Fn::Base64: |
-          #!/bin/bash
-          yum update -y
-          amazon-linux-extras install nginx1 -y
-          systemctl start nginx
-          systemctl enable nginx
-          echo "<h1>Udagram App is Working 🎉</h1>" > /usr/share/nginx/html/index.html
+      AccessControl: PublicRead
 
+# -------------------------
+# LAUNCH TEMPLATE
+# -------------------------
+  LaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateData:
+        ImageId: ami-0f5ee92e2d63afc18 # Ubuntu 22.04 (Mumbai)
+        InstanceType: t2.micro
+        IamInstanceProfile:
+          Name: !Ref UdagramInstanceProfile
+        SecurityGroupIds:
+          - !Ref ServerSG
+        UserData:
+          Fn::Base64: |
+            #!/bin/bash
+            apt update -y
+            apt install -y apache2 awscli
+            systemctl start apache2
+            systemctl enable apache2
+            aws s3 cp s3://$BUCKET_NAME/index.html /var/www/html/index.html
+
+# -------------------------
+# TARGET GROUP
+# -------------------------
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       VpcId: !ImportValue Udagram-VPC
       Port: 80
       Protocol: HTTP
-      TargetType: instance
       HealthCheckPath: /
-      Targets:
-        - Id: !Ref WebServer
-          Port: 80
+      TargetType: instance
 
+# -------------------------
+# APPLICATION LOAD BALANCER
+# -------------------------
   LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Scheme: internet-facing
-      Subnets:
-        - !ImportValue Udagram-PublicSubnet1
-        - !ImportValue Udagram-PublicSubnet2
+      Subnets: !Split [ ",", !ImportValue Udagram-Public-Subnets ]
       SecurityGroups:
         - !Ref LoadBalancerSG
 
@@ -81,9 +119,3 @@ Resources:
       Protocol: HTTP
       DefaultActions:
         - Type: forward
-          TargetGroupArn: !Ref TargetGroup
-
-Outputs:
-  LoadBalancerDNS:
-    Description: Udagram Application URL
-    Value: !GetAtt LoadBalancer.DNSName
