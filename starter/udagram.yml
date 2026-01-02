@@ -73,7 +73,7 @@ Resources:
             yum install -y httpd aws-cli
             systemctl start httpd
             systemctl enable httpd
-            echo "<h1>Udagram App Running</h1>" > /var/www/html/index.html
+            echo "<h1>It works! Udagram, Udacity</h1>" > /var/www/html/index.html
 
 # -------------------------
 # TARGET GROUP
