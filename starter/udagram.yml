@@ -2,16 +2,12 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: Udagram Application Stack - ALB, ASG, EC2, S3
 
 Parameters:
-
   EnvironmentName:
     Type: String
     Default: Udagram
 
 Resources:
 
-# -------------------------
-# IAM ROLE FOR EC2
-# -------------------------
   UdagramEC2Role:
     Type: AWS::IAM::Role
     Properties:
@@ -31,9 +27,6 @@ Resources:
       Roles:
         - !Ref UdagramEC2Role
 
-# -------------------------
-# SECURITY GROUPS
-# -------------------------
   LoadBalancerSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -59,22 +52,16 @@ Resources:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
 
-# -------------------------
-# S3 BUCKET
-# -------------------------
   UdagramS3Bucket:
     Type: AWS::S3::Bucket
     Properties:
       AccessControl: PublicRead
 
-# -------------------------
-# LAUNCH TEMPLATE
-# -------------------------
   LaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
     Properties:
       LaunchTemplateData:
-        ImageId: ami-0f5ee92e2d63afc18 # Ubuntu 22.04 (Mumbai)
+        ImageId: ami-0f5ee92e2d63afc18
         InstanceType: t2.micro
         IamInstanceProfile:
           Name: !Ref UdagramInstanceProfile
@@ -87,11 +74,7 @@ Resources:
             apt install -y apache2 awscli
             systemctl start apache2
             systemctl enable apache2
-            aws s3 cp s3://$BUCKET_NAME/index.html /var/www/html/index.html
 
-# -------------------------
-# TARGET GROUP
-# -------------------------
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -101,13 +84,12 @@ Resources:
       HealthCheckPath: /
       TargetType: instance
 
-# -------------------------
-# APPLICATION LOAD BALANCER
-# -------------------------
   LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Subnets: !Split [ ",", !ImportValue Udagram-Public-Subnets ]
+      Subnets:
+        - !ImportValue Udagram-PublicSubnet1
+        - !ImportValue Udagram-PublicSubnet2
       SecurityGroups:
         - !Ref LoadBalancerSG
 
@@ -121,13 +103,12 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref TargetGroup
 
-# -------------------------
-# AUTO SCALING GROUP
-# -------------------------
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-      VPCZoneIdentifier: !Split [ ",", !ImportValue Udagram-Private-Subnets ]
+      VPCZoneIdentifier:
+        - !ImportValue Udagram-PrivateSubnet1
+        - !ImportValue Udagram-PrivateSubnet2
       LaunchTemplate:
         LaunchTemplateId: !Ref LaunchTemplate
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
@@ -137,11 +118,7 @@ Resources:
       TargetGroupARNs:
         - !Ref TargetGroup
 
-# -------------------------
-# OUTPUTS
-# -------------------------
 Outputs:
-
   LoadBalancerURL:
     Description: Public URL of the Application
     Value: !Sub "http://${LoadBalancer.DNSName}"
