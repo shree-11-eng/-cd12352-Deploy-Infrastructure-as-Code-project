@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Udagram Application Stack - ALB, ASG, EC2, S3
+Description: Udagram Application Stack - ALB, ASG, EC2
 
 Parameters:
   EnvironmentName:
@@ -8,6 +8,9 @@ Parameters:
 
 Resources:
 
+# -------------------------
+# IAM ROLE FOR EC2
+# -------------------------
   UdagramEC2Role:
     Type: AWS::IAM::Role
     Properties:
@@ -19,7 +22,7 @@ Resources:
               Service: ec2.amazonaws.com
             Action: sts:AssumeRole
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
 
   UdagramInstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -27,6 +30,9 @@ Resources:
       Roles:
         - !Ref UdagramEC2Role
 
+# -------------------------
+# SECURITY GROUPS
+# -------------------------
   LoadBalancerSG:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -52,16 +58,14 @@ Resources:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
 
-  UdagramS3Bucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      AccessControl: PublicRead
-
+# -------------------------
+# LAUNCH TEMPLATE
+# -------------------------
   LaunchTemplate:
     Type: AWS::EC2::LaunchTemplate
     Properties:
       LaunchTemplateData:
-        ImageId: ami-0f5ee92e2d63afc18
+        ImageId: ami-0e670eb768a5fc3d4   # Amazon Linux 2 (ap-south-1)
         InstanceType: t2.micro
         IamInstanceProfile:
           Name: !Ref UdagramInstanceProfile
@@ -70,11 +74,15 @@ Resources:
         UserData:
           Fn::Base64: |
             #!/bin/bash
-            apt update -y
-            apt install -y apache2 awscli
-            systemctl start apache2
-            systemctl enable apache2
+            yum update -y
+            yum install -y httpd aws-cli
+            systemctl start httpd
+            systemctl enable httpd
+            echo "<h1>Udagram App Running</h1>" > /var/www/html/index.html
 
+# -------------------------
+# TARGET GROUP
+# -------------------------
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -84,6 +92,9 @@ Resources:
       HealthCheckPath: /
       TargetType: instance
 
+# -------------------------
+# APPLICATION LOAD BALANCER
+# -------------------------
   LoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
@@ -103,6 +114,9 @@ Resources:
         - Type: forward
           TargetGroupArn: !Ref TargetGroup
 
+# -------------------------
+# AUTO SCALING GROUP
+# -------------------------
   AutoScalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
@@ -112,12 +126,15 @@ Resources:
       LaunchTemplate:
         LaunchTemplateId: !Ref LaunchTemplate
         Version: !GetAtt LaunchTemplate.LatestVersionNumber
-      MinSize: "4"
+      MinSize: "2"
       MaxSize: "4"
-      DesiredCapacity: "4"
+      DesiredCapacity: "2"
       TargetGroupARNs:
         - !Ref TargetGroup
 
+# -------------------------
+# OUTPUTS
+# -------------------------
 Outputs:
   LoadBalancerURL:
     Description: Public URL of the Application
