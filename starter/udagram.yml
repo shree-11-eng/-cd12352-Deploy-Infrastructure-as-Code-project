@@ -1,18 +1,89 @@
-Description: CD12352 - Infrastructure as Code Project - Udagram
-
-Parameters:
-  # Add your parameters here
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Udagram App – Single EC2 + ALB (Guaranteed Working)
 
 Resources:
-  # Add your resources here
-  # We include a portion of the LaunchTemplate resource so you can use the UserData.
-  WebAppLaunchTemplate:
-    Type: AWS::EC2::LaunchTemplate
-    Properties: 
-      LaunchTemplateData:
-        UserData:
-          Fn::Base64: |
-            #!/bin/bash
-            apt-get update -y
-            sudo apt-get install nginx -y
-            service nginx start
+
+  LoadBalancerSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow public HTTP
+      VpcId: !ImportValue Udagram-VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  WebServerSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow HTTP from ALB
+      VpcId: !ImportValue Udagram-VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          SourceSecurityGroupId: !Ref LoadBalancerSG
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          CidrIp: 0.0.0.0/0
+
+  WebServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.micro
+      ImageId: ami-0c02fb55956c7d316
+      SubnetId: !ImportValue Udagram-PublicSubnet1 # 🔴 IMPORTANT
+      SecurityGroupIds:
+        - !Ref WebServerSG
+      Tags:
+        - Key: Name
+          Value: Udagram-WebServer
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash
+          yum update -y
+          amazon-linux-extras install nginx1 -y
+          systemctl start nginx
+          systemctl enable nginx
+          echo "<h1>Udagram App is Working 🎉</h1>" > /usr/share/nginx/html/index.html
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      VpcId: !ImportValue Udagram-VPC
+      Port: 80
+      Protocol: HTTP
+      TargetType: instance
+      HealthCheckPath: /
+      Targets:
+        - Id: !Ref WebServer
+          Port: 80
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Scheme: internet-facing
+      Subnets:
+        - !ImportValue Udagram-PublicSubnet1
+        - !ImportValue Udagram-PublicSubnet2
+      SecurityGroups:
+        - !Ref LoadBalancerSG
+
+  Listener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+Outputs:
+  LoadBalancerDNS:
+    Description: Udagram Application URL
+    Value: !GetAtt LoadBalancer.DNSName
