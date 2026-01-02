@@ -1,8 +1,7 @@
 Description: CD12352 - Infrastructure as Code Project - Network
 
 AWSTemplateFormatVersion: 2010-09-09
-Description: Udagram Network Infrastructure
-
+Description: Udagram Network stack with NAT gateway
 Parameters:
 
   VpcCidr:
