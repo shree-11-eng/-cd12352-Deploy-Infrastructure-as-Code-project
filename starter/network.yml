@@ -159,10 +159,10 @@ Outputs:
     Description: Public Subnets
     Value: !Join [ ",", [ !Ref PublicSubnet1, !Ref PublicSubnet2 ] ]
     Export:
-      Name: Udagram-Public-Subnets
+      Name: Udagram-PublicSubnet1
 
   PrivateSubnets:
-    Description: Private Subnets
-    Value: !Join [ ",", [ !Ref PrivateSubnet1, !Ref PrivateSubnet2 ] ]
+    Description: Public Subnets
+    Value: !Join [ ",", [ !Ref PublicSubnet1, !Ref PublicSubnet2 ] ]
     Export:
-      Name: Udagram-Private-Subnets
+      Name: Udagram-PublicSubnet2
