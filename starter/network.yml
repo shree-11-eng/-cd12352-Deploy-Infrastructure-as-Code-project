@@ -1,54 +1,19 @@
 Description: CD12352 - Infrastructure as Code Project - Network
 
-AWSTemplateFormatVersion: 2010-09-09
-Description: Udagram Network stack with NAT gateway
-Parameters:
-
-  VpcCidr:
-    Type: String
-    Default: 10.0.0.0/16
-    Description: CIDR block for VPC
-
-  VpcName:
-    Type: String
-    Default: Udagram-VPC
-
-  PublicSubnet1Cidr:
-    Type: String
-    Default: 10.0.1.0/24
-
-  PublicSubnet2Cidr:
-    Type: String
-    Default: 10.0.2.0/24
-
-  PrivateSubnet1Cidr:
-    Type: String
-    Default: 10.0.3.0/24
-
-  PrivateSubnet2Cidr:
-    Type: String
-    Default: 10.0.4.0/24
-
-  AvailabilityZone1:
-    Type: String
-    Default: us-east-1a
-
-  AvailabilityZone2:
-    Type: String
-    Default: us-east-1b
-
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Udagram Network Stack with NAT Gateway
 
 Resources:
 
   VPC:
     Type: AWS::EC2::VPC
     Properties:
-      CidrBlock: !Ref VpcCidr
+      CidrBlock: 10.0.0.0/16
       EnableDnsSupport: true
       EnableDnsHostnames: true
       Tags:
         - Key: Name
-          Value: !Ref VpcName
+          Value: Udagram-VPC
 
   InternetGateway:
     Type: AWS::EC2::InternetGateway
@@ -59,38 +24,36 @@ Resources:
       VpcId: !Ref VPC
       InternetGatewayId: !Ref InternetGateway
 
-
   PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: !Ref PublicSubnet1Cidr
-      AvailabilityZone: !Ref AvailabilityZone1
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: us-east-1a
       MapPublicIpOnLaunch: true
 
   PublicSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: !Ref PublicSubnet2Cidr
-      AvailabilityZone: !Ref AvailabilityZone2
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone: us-east-1b
       MapPublicIpOnLaunch: true
 
   PrivateSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: !Ref PrivateSubnet1Cidr
-      AvailabilityZone: !Ref AvailabilityZone1
+      CidrBlock: 10.0.3.0/24
+      AvailabilityZone: us-east-1a
 
   PrivateSubnet2:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VPC
-      CidrBlock: !Ref PrivateSubnet2Cidr
-      AvailabilityZone: !Ref AvailabilityZone2
+      CidrBlock: 10.0.4.0/24
+      AvailabilityZone: us-east-1b
 
- 
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -116,8 +79,6 @@ Resources:
       SubnetId: !Ref PublicSubnet2
       RouteTableId: !Ref PublicRouteTable
 
-
-
   NatEIP:
     Type: AWS::EC2::EIP
     DependsOn: AttachGateway
@@ -130,7 +91,6 @@ Resources:
       AllocationId: !GetAtt NatEIP.AllocationId
       SubnetId: !Ref PublicSubnet1
 
- 
   PrivateRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -154,11 +114,7 @@ Resources:
     Properties:
       SubnetId: !Ref PrivateSubnet2
       RouteTableId: !Ref PrivateRouteTable
-
-
-
 Outputs:
-
   VPCId:
     Description: VPC ID
     Value: !Ref VPC
