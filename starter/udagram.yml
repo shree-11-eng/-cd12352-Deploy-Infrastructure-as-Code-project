@@ -119,3 +119,31 @@ Resources:
       Protocol: HTTP
       DefaultActions:
         - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+
+# -------------------------
+# AUTO SCALING GROUP
+# -------------------------
+  AutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Split [ ",", !ImportValue Udagram-Private-Subnets ]
+      LaunchTemplate:
+        LaunchTemplateId: !Ref LaunchTemplate
+        Version: !GetAtt LaunchTemplate.LatestVersionNumber
+      MinSize: "4"
+      MaxSize: "4"
+      DesiredCapacity: "4"
+      TargetGroupARNs:
+        - !Ref TargetGroup
+
+# -------------------------
+# OUTPUTS
+# -------------------------
+Outputs:
+
+  LoadBalancerURL:
+    Description: Public URL of the Application
+    Value: !Sub "http://${LoadBalancer.DNSName}"
+    Export:
+      Name: Udagram-URL
