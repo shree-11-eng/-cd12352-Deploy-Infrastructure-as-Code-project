@@ -1,6 +1,28 @@
 [
-	{
-		"ParameterKey": "Add you parameters here",
-		"ParameterValue": "Add you parameters here"
-	}
+  {
+    "ParameterKey": "VpcId",
+    "ParameterValue": "Udagram-VPC",
+    "Type": "String"
+  },
+  {
+    "ParameterKey": "PublicSubnet1",
+    "ParameterValue": "Udagram-PublicSubnet1",
+    "Type": "String"
+  },
+  {
+    "ParameterKey": "PublicSubnet2",
+    "ParameterValue": "Udagram-PublicSubnet2",
+    "Type": "String"
+  },
+  {
+    "ParameterKey": "InstanceType",
+    "ParameterValue": "t3.micro",
+    "Type": "String"
+  },
+  {
+    "ParameterKey": "AmiId",
+    "ParameterValue": "ami-0c02fb55956c7d316",
+    "Type": "AWS::EC2::Image::Id"
+  }
 ]
+
